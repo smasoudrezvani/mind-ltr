@@ -1,6 +1,6 @@
 """Feature engineering for MIND — built together in Step 5.
 
-We mirror the three feature groups from the ByteByteGo diagrams
+I mirror the three feature groups from the ByteByteGo diagrams
 (user / item / user-item interaction — the interaction group is the one
 that usually carries the model):
 

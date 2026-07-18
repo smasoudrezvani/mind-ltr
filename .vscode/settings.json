@@ -1,0 +1,5 @@
+{
+  "files.exclude": { "**/.venv": true },
+  "files.watcherExclude": { "**/.venv/**": true },
+  "python.analysis.exclude": ["**/.venv/**"]
+}

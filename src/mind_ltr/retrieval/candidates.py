@@ -1,7 +1,7 @@
 """Candidate generation — built together in Step 7.
 
 MIND impressions already come with a shown-items list, so the ranker can be
-trained without retrieval. We add this stage anyway because (a) it's how the
+trained without retrieval. I add this stage anyway because (a) it's how the
 real system works (billions -> thousands, Fig 6.23), and (b) "how do you
 measure retrieval separately from ranking?" is a standard interview question
 (answer: recall@k of the candidate set, before any ranking).

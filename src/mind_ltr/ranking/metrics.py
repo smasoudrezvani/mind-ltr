@@ -1,8 +1,5 @@
 """Ranking metrics implemented from scratch.
 
-We deliberately do NOT use sklearn's ndcg_score here: implementing these
-yourself is the fastest way to be able to explain them in an interview.
-
 Vocabulary
 ----------
 An "impression" (or "query group") is one ranking event: a user was shown a
@@ -99,3 +96,17 @@ def evaluate_groups(
         f"recall@{k}": float(np.mean(recalls)),
         "n_impressions": len(group_sizes),
     }
+
+def map_at_k(y_true: np.ndarray, y_score: np.ndarray, k: int = 10) -> float:
+    """Mean Average Precision at k.
+
+    AP@k = sum_{i=1..k} (P(i) * rel_i) / min(k, #relevant)
+    where P(i) is precision at rank i and rel_i is 1 if the item at rank i is relevant, else 0.
+    """
+    order = np.argsort(y_score)[::-1][:k]
+    ranked_labels = y_true[order]
+    relevant_indices = np.flatnonzero(ranked_labels > 0)
+    if len(relevant_indices) == 0:
+        return 0.0
+    precisions = [(i + 1) / (idx + 1) for i, idx in enumerate(relevant_indices)]
+    return float(np.sum(precisions)) / min(k, len(relevant_indices))

@@ -14,7 +14,7 @@ behaviors.tsv columns (tab-separated, no header):
                  1 = clicked, 0 = shown-but-not-clicked.
 
 This is gold for LTR: the "-0" items are REAL negatives (the user saw them
-and passed), so we don't have to invent a negative-sampling scheme. The
+and passed), so I don't have to invent a negative-sampling scheme. The
 token order within `impressions` is the display order, which we use as the
 position for bias correction.
 """

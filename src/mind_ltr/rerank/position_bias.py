@@ -11,7 +11,7 @@ The examination model
 P(click) = P(examined | position) * P(relevant | item, user)
                 └── propensity ──┘
 
-If we know the propensity of each position, we can reweight each clicked
+If I know the propensity of each position, I can reweight each clicked
 example by 1/propensity: a click at rank 10 (rarely examined) counts MORE
 than a click at rank 1, exactly undoing the bias. In LightGBM this is just
 `sample_weight` — no change to the objective.
@@ -20,7 +20,7 @@ Estimating propensities
 -----------------------
 In industry: result randomization (swap ranks 1<->k for a small % of traffic)
 or intervention-free estimators (e.g. regression EM, dual learning).
-Here we provide:
+Here I provide:
   * `propensity_power_law` — the standard 1/pos^eta parametric assumption,
     which is what most papers use as a baseline and what our synthetic
     generator actually follows.
