@@ -1,0 +1,14 @@
+numpy>=1.26
+pandas>=2.0
+scikit-learn>=1.4
+lightgbm>=4.3
+# step 5+
+sentence-transformers>=3.0
+# step 7
+rank-bm25>=0.2.2
+faiss-cpu>=1.8
+# step 8
+fastapi>=0.110
+uvicorn>=0.29
+# dev
+pytest>=8.0

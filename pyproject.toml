@@ -1,0 +1,18 @@
+[project]
+name = "mind-ltr"
+version = "0.1.0"
+description = "Learning-to-rank news recommender on MIND"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.15.22",
+]
