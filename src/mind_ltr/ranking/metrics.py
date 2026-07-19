@@ -1,8 +1,5 @@
 """Ranking metrics implemented from scratch.
 
-We deliberately do NOT use sklearn's ndcg_score here: implementing these
-yourself is the fastest way to be able to explain them in an interview.
-
 Vocabulary
 ----------
 An "impression" (or "query group") is one ranking event: a user was shown a
