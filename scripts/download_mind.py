@@ -14,8 +14,12 @@ import zipfile
 from pathlib import Path
 
 URLS = {
-    "MINDsmall_train": "https://mind201910small.blob.core.windows.net/release/MINDsmall_train.zip",
-    "MINDsmall_dev": "https://mind201910small.blob.core.windows.net/release/MINDsmall_dev.zip",
+    # Microsoft's original Azure blob (mind201910small.blob.core.windows.net)
+    # returns HTTP 409 since mid-2024 (public access disabled). The
+    # recommenders-team maintains an official mirror on Hugging Face; these
+    # URLs are what recommenders/datasets/mind.py itself now uses.
+    "MINDsmall_train": "https://huggingface.co/datasets/Recommenders/MIND/resolve/main/MINDsmall_train.zip",
+    "MINDsmall_dev": "https://huggingface.co/datasets/Recommenders/MIND/resolve/main/MINDsmall_dev.zip",
 }
 
 RAW = Path(__file__).resolve().parents[1] / "data" / "raw"
@@ -30,7 +34,10 @@ def main() -> None:
             continue
         zip_path = RAW / f"{name}.zip"
         print(f"[down] {url}")
-        urllib.request.urlretrieve(url, zip_path)
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req) as resp, open(zip_path, "wb") as out:
+            while chunk := resp.read(1 << 20):
+                out.write(chunk)
         print(f"[unzip] -> {out_dir}")
         with zipfile.ZipFile(zip_path) as zf:
             zf.extractall(out_dir)
