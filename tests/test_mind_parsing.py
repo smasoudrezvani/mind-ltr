@@ -3,7 +3,6 @@
 Same philosophy as the lambda tests: know every expected value in advance.
 """
 
-import pandas as pd
 import pytest
 
 from mind_ltr.data.mind import explode_impressions, load_behaviors, load_news
