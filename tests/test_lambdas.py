@@ -12,7 +12,7 @@ def test_lambdas_match_hand_computation():
       pair (A,C): rho=0.42556, |dNDCG|=0.13093 -> 0.055718
       lambda_A = +0.285449, lambda_B = -0.229731, lambda_C = -0.055718
     """
-    labels = np.array([1.0, 0.0, 0.0])       # A, B, C
+    labels = np.array([1.0, 0.0, 0.0])  # A, B, C
     scores = np.array([0.5, 1.0, 0.2])
     grad, hess = lambdas_one_group(labels, scores, sigma=1.0)
 

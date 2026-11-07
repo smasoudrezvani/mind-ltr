@@ -21,7 +21,7 @@ import numpy as np
 
 
 def mmr_rerank(
-    scores: np.ndarray,          # (n,) ranker scores, higher = better
+    scores: np.ndarray,  # (n,) ranker scores, higher = better
     item_embeddings: np.ndarray,  # (n, d) L2-normalized embeddings
     k: int = 10,
     lam: float = 0.7,
@@ -29,7 +29,7 @@ def mmr_rerank(
     """Return indices of the k items selected by MMR, in display order."""
     n = len(scores)
     k = min(k, n)
-    sim = item_embeddings @ item_embeddings.T     # cosine sim (normalized inputs)
+    sim = item_embeddings @ item_embeddings.T  # cosine sim (normalized inputs)
 
     selected: list[int] = []
     candidates = set(range(n))

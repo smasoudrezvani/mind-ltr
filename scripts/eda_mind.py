@@ -79,7 +79,9 @@ def main() -> None:
     print(f"news articles         {len(news):>10,}")
     print(f"shown items (rows)    {n_shown:>10,}")
     print(f"overall CTR           {n_clicks / n_shown:>10.4f}")
-    print(f"items shown / impr    {per_imp['size'].mean():>10.1f} (median {per_imp['size'].median():.0f})")
+    print(
+        f"items shown / impr    {per_imp['size'].mean():>10.1f} (median {per_imp['size'].median():.0f})"
+    )
     print(f"clicks / impr         {per_imp['sum'].mean():>10.2f}")
     print(f"date range            {behaviors.time.min()}  ->  {behaviors.time.max()}")
 
@@ -91,12 +93,15 @@ def main() -> None:
 
     # history length -> how much signal user-taste features will have
     hist_len = behaviors.history.str.len()
-    print(f"\nhistory length: mean {hist_len.mean():.1f}, median {hist_len.median():.0f}, "
-          f"zero-history users: {(hist_len == 0).mean():.1%} of impressions")
+    print(
+        f"\nhistory length: mean {hist_len.mean():.1f}, median {hist_len.median():.0f}, "
+        f"zero-history users: {(hist_len == 0).mean():.1%} of impressions"
+    )
     fig, ax = plt.subplots(figsize=(6, 4))
     hist_len.clip(upper=100).hist(bins=50, ax=ax)
-    ax.set(xlabel="history length (clipped at 100)", ylabel="impressions",
-           title="User history length")
+    ax.set(
+        xlabel="history length (clipped at 100)", ylabel="impressions", title="User history length"
+    )
     fig.tight_layout()
     fig.savefig(REPORTS / "history_length.png", dpi=150)
     plt.close(fig)

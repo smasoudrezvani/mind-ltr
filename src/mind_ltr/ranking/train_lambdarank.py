@@ -48,8 +48,8 @@ def main() -> None:
     tr, te, n_tr_groups = split_by_impression(data)
 
     X_tr, X_te = data.X[tr], data.X[te]
-    y_tr = data.clicks[tr]                      # we train on BIASED clicks
-    y_te_true = data.true_relevance[te]         # we evaluate on TRUTH
+    y_tr = data.clicks[tr]  # we train on BIASED clicks
+    y_te_true = data.true_relevance[te]  # we evaluate on TRUTH
     groups_tr = data.group_sizes[:n_tr_groups]
     groups_te = data.group_sizes[n_tr_groups:]
 
@@ -63,9 +63,7 @@ def main() -> None:
     )
     pointwise.fit(X_tr, y_tr)
     scores = pointwise.predict_proba(X_te)[:, 1]
-    results["pointwise (binary logloss)"] = evaluate_groups(
-        y_te_true, scores, groups_te
-    )
+    results["pointwise (binary logloss)"] = evaluate_groups(y_te_true, scores, groups_te)
 
     # ------------------------------------------------------------------
     # Model 2: LambdaMART (listwise-flavored pairwise, optimizes NDCG)
@@ -74,7 +72,7 @@ def main() -> None:
         objective="lambdarank",
         n_estimators=200,
         learning_rate=0.05,
-        label_gain=[0, 1],          # gains for labels 0 and 1
+        label_gain=[0, 1],  # gains for labels 0 and 1
         verbose=-1,
     )
     ranker.fit(X_tr, y_tr, group=groups_tr)

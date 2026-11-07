@@ -42,9 +42,7 @@ def main() -> None:
     )
 
     # --- OUR LambdaMART: same trees, our gradients -------------------------
-    ds_ours = lgb.Dataset(
-        data.X[tr], label=data.clicks[tr], group=g_tr, free_raw_data=False
-    )
+    ds_ours = lgb.Dataset(data.X[tr], label=data.clicks[tr], group=g_tr, free_raw_data=False)
     ours = lgb.train(
         {**common, "objective": make_lgb_objective(g_tr, sigma=1.0)},
         ds_ours,

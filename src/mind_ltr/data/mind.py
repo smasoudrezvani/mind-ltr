@@ -26,8 +26,14 @@ from pathlib import Path
 import pandas as pd
 
 NEWS_COLUMNS = [
-    "news_id", "category", "subcategory", "title",
-    "abstract", "url", "title_entities", "abstract_entities",
+    "news_id",
+    "category",
+    "subcategory",
+    "title",
+    "abstract",
+    "url",
+    "title_entities",
+    "abstract_entities",
 ]
 BEHAVIORS_COLUMNS = ["impression_id", "user_id", "time", "history", "impressions"]
 

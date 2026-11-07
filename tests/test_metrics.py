@@ -47,8 +47,8 @@ def test_ipw_upweights_low_positions():
     clicks = np.array([1, 1, 0])
     positions = np.array([1, 10, 5])
     w = ipw_sample_weights(clicks, positions, eta=1.0, clip=100.0)
-    assert w[1] > w[0]        # click at rank 10 counts more than at rank 1
-    assert w[2] == 1.0        # non-clicks unweighted
+    assert w[1] > w[0]  # click at rank 10 counts more than at rank 1
+    assert w[2] == 1.0  # non-clicks unweighted
 
 
 def test_mmr_prefers_diverse_items():
@@ -57,7 +57,7 @@ def test_mmr_prefers_diverse_items():
     emb = emb / np.linalg.norm(emb, axis=1, keepdims=True)
     scores = np.array([1.0, 0.95, 0.5])
     picked = mmr_rerank(scores, emb, k=2, lam=0.5)
-    assert picked == [0, 2]   # skips the duplicate, takes the diverse item
+    assert picked == [0, 2]  # skips the duplicate, takes the diverse item
 
 
 def test_map_penalizes_missed_relevant_items():
@@ -69,7 +69,7 @@ def test_map_penalizes_missed_relevant_items():
     y_one = np.array([1, 0, 0, 0, 0])
     s_one = np.array([0.99, 0.9, 0.8, 0.7, 0.6])
 
-    assert map_at_k(y_one, s_one, k=5) == 1.0          # truly perfect
+    assert map_at_k(y_one, s_one, k=5) == 1.0  # truly perfect
     assert map_at_k(y_five, s_five, k=5) == 1.0 / 5.0  # found 1 of 5
 
 

@@ -28,10 +28,10 @@ import numpy as np
 
 @dataclass
 class SyntheticData:
-    X: np.ndarray            # (n_rows, n_features) item features
-    clicks: np.ndarray      # (n_rows,) observed labels (biased!)
+    X: np.ndarray  # (n_rows, n_features) item features
+    clicks: np.ndarray  # (n_rows,) observed labels (biased!)
     true_relevance: np.ndarray  # (n_rows,) hidden ground truth in {0,1}
-    positions: np.ndarray   # (n_rows,) historical display position, 1-indexed
+    positions: np.ndarray  # (n_rows,) historical display position, 1-indexed
     group_sizes: np.ndarray  # impressions' sizes, LightGBM style
 
 
@@ -50,7 +50,7 @@ def make_impressions(
     # True relevance: driven by features 1..n-1. Feature 0 ("popularity")
     # is only WEAKLY relevant — this is deliberate, see below.
     w = rng.normal(size=n_features)
-    w[0] = 0.2                                  # popularity barely matters for relevance
+    w[0] = 0.2  # popularity barely matters for relevance
     logits = X @ w - 1.0
     p_rel = 1.0 / (1.0 + np.exp(-logits))
     true_relevance = (rng.random(n_rows) < p_rel).astype(int)
@@ -70,7 +70,7 @@ def make_impressions(
     start = 0
     for _ in range(n_impressions):
         sl = slice(start, start + items_per_impression)
-        order = np.argsort(legacy_score[sl])[::-1]       # legacy display order
+        order = np.argsort(legacy_score[sl])[::-1]  # legacy display order
         pos = np.empty(items_per_impression, dtype=int)
         pos[order] = np.arange(1, items_per_impression + 1)
         positions[sl] = pos
