@@ -4,20 +4,22 @@
 
 Reports MINDsmall date ranges, cold-start share and article lifetimes, then
 compares popularity scores with and without leakage by their per-impression
-AUC on the last train day.
+AUC on the last train day, and checks the implemented item features
+(`build_item_popularity`) on the validation day and the test day.
 """
 
 from __future__ import annotations
 
 import argparse
 import logging
+import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import roc_auc_score
 
 from mind_ltr.data.mind import explode_impressions, load_behaviors
+from mind_ltr.features.item import build_item_popularity
 
 log = logging.getLogger(__name__)
 
@@ -27,6 +29,10 @@ PRIOR_STRENGTH = 100.0  # m, in pseudo-impressions
 def mean_impression_auc(df: pd.DataFrame, col: str) -> float:
     """MIND-style AUC: computed per impression, averaged over impressions.
 
+    Vectorized Mann-Whitney form: within each impression,
+    AUC = (sum of positive ranks - P(P+1)/2) / (P * Q) with P clicks and Q
+    non-clicks, using average ranks for ties (same as sklearn's roc_auc_score).
+
     Args:
         df: Rows with `impression_id`, `clicked` and the score column.
         col: Name of the score column.
@@ -34,12 +40,22 @@ def mean_impression_auc(df: pd.DataFrame, col: str) -> float:
     Returns:
         Mean AUC over impressions that contain both a click and a non-click.
     """
-    aucs = []
-    for _, g in df.groupby("impression_id"):
-        y = g["clicked"].to_numpy()
-        if 0 < y.sum() < len(y):
-            aucs.append(roc_auc_score(y, g[col].to_numpy()))
-    return float(np.mean(aucs))
+    ranks = df.groupby("impression_id")[col].rank(method="average")
+    per_imp = (
+        pd.DataFrame(
+            {
+                "impression_id": df["impression_id"],
+                "y": df["clicked"],
+                "pos_rank": ranks * df["clicked"],
+            }
+        )
+        .groupby("impression_id")
+        .agg(n=("y", "size"), n_pos=("y", "sum"), pos_rank_sum=("pos_rank", "sum"))
+    )
+    per_imp = per_imp[(per_imp.n_pos > 0) & (per_imp.n_pos < per_imp.n)]
+    n_neg = per_imp.n - per_imp.n_pos
+    auc = (per_imp.pos_rank_sum - per_imp.n_pos * (per_imp.n_pos + 1) / 2) / (per_imp.n_pos * n_neg)
+    return float(auc.mean())
 
 
 def describe_splits(tr: pd.DataFrame, dv: pd.DataFrame) -> None:
@@ -125,6 +141,31 @@ def compare_popularity_scores(tr: pd.DataFrame) -> None:
     log.info("rows with no history before that hour: %.1f%%", 100 * (eval_df.cum_imp == 0).mean())
 
 
+def check_item_features(tr: pd.DataFrame, dv: pd.DataFrame) -> None:
+    """Run build_item_popularity over the streaming timeline and log AUC per day.
+
+    Args:
+        tr: Exploded train impressions.
+        dv: Exploded dev impressions.
+    """
+    rows = pd.concat([tr, dv], ignore_index=True)
+    start = time.perf_counter()
+    feats = build_item_popularity(rows, prior_ctr=tr.clicked.mean())  # prior: train only
+    log.info(
+        "build_item_popularity: %d rows in %.1fs, %d missing values",
+        len(rows),
+        time.perf_counter() - start,
+        int(feats.isna().sum().sum()),
+    )
+    df = rows.join(feats)
+    day = df.time.dt.strftime("%Y-%m-%d")
+    for d in ["2019-11-14", "2019-11-15"]:
+        sub = df[day == d]
+        log.info("per-impression AUC of item features on %s:", d)
+        for col in feats.columns:
+            log.info("  %-22s %.4f", col, mean_impression_auc(sub, col))
+
+
 def main() -> None:
     """Run the exploratory analysis."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -136,6 +177,7 @@ def main() -> None:
     dv = explode_impressions(load_behaviors(args.data / "MINDsmall_dev"))
     describe_splits(tr, dv)
     compare_popularity_scores(tr)
+    check_item_features(tr, dv)
 
 
 if __name__ == "__main__":
