@@ -42,17 +42,17 @@ def lambdas_one_group(
     grad = np.zeros(n)
     hess = np.zeros(n)
 
-    gains = (2.0 ** labels) - 1.0
+    gains = (2.0**labels) - 1.0
     ideal = np.sort(gains)[::-1]
     idcg = float(np.sum(ideal / np.log2(np.arange(2, n + 2))))
-    if idcg == 0.0:                      # no relevant items -> no signal
+    if idcg == 0.0:  # no relevant items -> no signal
         return grad, hess
 
     discounts = 1.0 / np.log2(1.0 + _ranks_from_scores(scores))
 
     # Pairwise matrices; entry [i, j] describes the ordered pair (i, j).
     s_diff = scores[:, None] - scores[None, :]
-    rho = sigma / (1.0 + np.exp(sigma * s_diff))                # RankNet dial
+    rho = sigma / (1.0 + np.exp(sigma * s_diff))  # RankNet dial
     dndcg = (
         np.abs(gains[:, None] - gains[None, :])
         * np.abs(discounts[:, None] - discounts[None, :])
@@ -62,7 +62,7 @@ def lambdas_one_group(
     # d(rho)/d(s_i) magnitude -> Newton hessian per pair (always positive):
     pair_hess = rho * (sigma - rho) * dndcg
 
-    more_relevant = labels[:, None] > labels[None, :]           # mask [i, j]
+    more_relevant = labels[:, None] > labels[None, :]  # mask [i, j]
     masked_lambda = pair_lambda * more_relevant
     masked_hess = pair_hess * more_relevant
 
@@ -101,6 +101,6 @@ def make_lgb_objective(group_sizes: np.ndarray, sigma: float = 1.0):
     def objective(preds: np.ndarray, train_data) -> tuple[np.ndarray, np.ndarray]:
         labels = train_data.get_label()
         grad, hess = lambdas_all_groups(labels, preds, group_sizes, sigma)
-        return -grad, np.maximum(hess, 1e-9)   # floor hess for stability
+        return -grad, np.maximum(hess, 1e-9)  # floor hess for stability
 
     return objective

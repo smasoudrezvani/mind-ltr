@@ -25,7 +25,7 @@ def dcg_at_k(y_true: np.ndarray, y_score: np.ndarray, k: int) -> float:
     divided by log2(2)=1 (no discount), position 2 by log2(3)≈1.58, etc.
     A click at rank 1 is worth ~1.0; the same click at rank 10 ~0.29.
     """
-    order = np.argsort(y_score)[::-1][:k]          # indices of top-k by score
+    order = np.argsort(y_score)[::-1][:k]  # indices of top-k by score
     gains = (2.0 ** y_true[order]) - 1.0
     discounts = np.log2(np.arange(2, len(order) + 2))
     return float(np.sum(gains / discounts))
@@ -37,9 +37,9 @@ def ndcg_at_k(y_true: np.ndarray, y_score: np.ndarray, k: int = 10) -> float:
     The normalization (dividing by "ideal DCG") makes impressions with
     different numbers of clicks comparable: NDCG is always in [0, 1].
     """
-    ideal = dcg_at_k(y_true, y_true, k)            # rank by true labels = best case
+    ideal = dcg_at_k(y_true, y_true, k)  # rank by true labels = best case
     if ideal == 0.0:
-        return 0.0                                  # no relevant items -> undefined; convention: 0
+        return 0.0  # no relevant items -> undefined; convention: 0
     return dcg_at_k(y_true, y_score, k) / ideal
 
 
@@ -86,7 +86,7 @@ def map_at_k(y_true: np.ndarray, y_score: np.ndarray, k: int = 10) -> float:
         return 0.0
     order = np.argsort(y_score)[::-1][:k]
     ranked_labels = y_true[order]
-    relevant_ranks = np.flatnonzero(ranked_labels > 0)          # 0-indexed
+    relevant_ranks = np.flatnonzero(ranked_labels > 0)  # 0-indexed
     precisions = (np.arange(1, len(relevant_ranks) + 1)) / (relevant_ranks + 1)
     return float(np.sum(precisions)) / min(k, n_relevant_total)
 
