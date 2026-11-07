@@ -1,24 +1,41 @@
 # mind-ltr — Learning-to-Rank news recommender on MIND
 
-An end-to-end recommendation system built around a **LambdaMART ranker**,
-with **position-bias correction (IPW)** and **MMR diversity re-ranking**,
-trained on the [MIND](https://msnews.github.io/) news dataset.
+A learning-to-rank news recommender on the [MIND](https://msnews.github.io/)
+dataset, being built into a two-stage **retrieve → rank → serve** system:
+candidate retrieval, a **LambdaMART ranker**, **MMR diversity re-ranking**,
+and a FastAPI service. Position-bias correction (IPW) is studied in a
+controlled synthetic simulator where the true relevance is known.
 
-Built as a deep-dive into learning-to-rank: every component is implemented
-with the goal of being able to explain it, not just run it.
+Every component is implemented with the goal of being able to explain it,
+not just run it. The status table below separates what is built from what
+is planned.
 
-## Architecture
+## Status
+
+| Component | Status |
+|---|---|
+| Ranking metrics from scratch (NDCG, MRR, MAP, recall), unit-tested | built |
+| LambdaRank gradients from scratch, used as a LightGBM custom objective | built |
+| Synthetic click simulator + IPW position-bias experiment | built |
+| MIND parsers + EDA | built |
+| User features (history length, category shares) | built |
+| Item, embedding and user-item features (leakage-safe) | planned |
+| LambdaMART on real MIND dev, with confidence intervals and ablations | planned |
+| Candidate retrieval (FAISS + popularity), recall@K | planned |
+| FastAPI `/recommend` service + Docker | planned |
+| CI (GitHub Actions), monitoring | planned |
+
+## Target architecture
 
 ```
                         ┌────────────────────────────────────────────┐
- news corpus ──────►    │  CANDIDATE GENERATION                      │
- (~100k items)          │  BM25 (lexical) ∪ FAISS ANN (semantic)     │ ~200 candidates
+ news corpus ──────►    │  CANDIDATE RETRIEVAL            (planned)  │
+                        │  FAISS ANN (semantic) ∪ recent popularity  │ ~200 candidates
                         └────────────────────┬───────────────────────┘
                                              ▼
                         ┌────────────────────────────────────────────┐
- user history ──────►   │  RANKING — LightGBM LambdaMART             │
+ user history ──────►   │  RANKING — LightGBM LambdaMART  (planned)  │
  item features          │  user / item / user-item features          │ ~top 50
- (feature store lite)   │  trained with IPW position-bias weights    │
                         └────────────────────┬───────────────────────┘
                                              ▼
                         ┌────────────────────────────────────────────┐
@@ -35,30 +52,34 @@ can't express.
 ## Quickstart
 
 ```bash
-pip install -r requirements.txt
-pip install -e .
+uv sync
 
 # Runs immediately — no download needed (synthetic impression logs):
-python -m mind_ltr.ranking.train_lambdarank
+uv run python -m mind_ltr.ranking.train_lambdarank
 
-pytest                          # metric + bias-correction unit tests
+uv run pytest                                  # unit tests
 
-python scripts/download_mind.py # real data (MINDsmall, ~100MB)
+uv run python scripts/download_mind.py         # real data (MINDsmall, ~250MB)
 ```
 
-The synthetic experiment trains three models on **biased clicks** and
-evaluates against **hidden true relevance**, demonstrating both core ideas:
+## Controlled synthetic experiment: position bias
+
+The simulator generates clicks from a known examination model
+(click = examined × relevant, with examination decaying by position), so
+models trained on **biased clicks** can be evaluated against the **hidden
+true relevance**:
 
 | model | trained on | NDCG@10 vs hidden truth |
 |---|---|---|
 | pointwise (binary logloss) | raw clicks | ~0.755 (inherits popularity confound) |
 | LambdaMART (lambdarank) | raw clicks | ~0.745 (ties pointwise — see note) |
-| LambdaMART + IPW | reweighted clicks | **~0.802** — debiasing wins clearly |
+| LambdaMART + IPW | reweighted clicks | **~0.802** |
 
-Honest note: with binary labels, pointwise GBDT is a strong baseline and
+These numbers come from the simulator, not from real MIND data.
+
+Note: with binary labels, pointwise GBDT is a strong baseline and
 lambdarank does not automatically beat it; its edge appears with graded
-relevance and top-heavy cutoffs. Documented deliberately — it's a common
-interview probe ("when is pointwise good enough?").
+relevance and top-heavy cutoffs.
 
 ## Key design decisions
 
@@ -66,25 +87,30 @@ interview probe ("when is pointwise good enough?").
   real negatives, no sampling heuristics needed.
 - **Splits:** temporal (train on earlier days, evaluate on later) — random
   splits leak the future through popularity and history features.
-- **Position bias:** clicks confound relevance with exposure. We reweight
-  clicked examples by inverse examination propensity (1/pos^eta, clipped).
+- **Position bias:** IPW (reweighting clicks by 1/pos^eta, clipped) is
+  applied only in the simulator. MIND shuffles the order of items within an
+  impression, so the token order carries no examination signal; the
+  apparent position-CTR decay in MIND is a confound of impression length,
+  not position bias. No IPW is applied to real MIND data.
 - **Leakage rule:** every feature is computable strictly before the
   impression timestamp; encoders fit on train only.
 
-## Metrics
+## Metrics (planned for real MIND)
 
-- **recall@200** — candidate generation quality
-- **NDCG@10, MRR** — ranking quality (per impression, averaged)
-- Ablation table: ± user-item interaction features, ± IPW correction
+- **recall@K** — candidate retrieval quality
+- **AUC, MRR, nDCG@5, nDCG@10** — ranking quality (MIND's standard metrics),
+  per impression, averaged, with bootstrap confidence intervals
+- Ablations by feature group; cold-start user / item segments
+- Serving latency p50/p95
 
 ## How this design extends to video
 
 Nothing in the ranking layer is text-specific — swapping the domain means
-swapping the *feature preparation* front-end (cf. ByteByteGo Fig 6.7/6.23):
+swapping the *feature preparation* front-end:
 
 - **Item features:** title/abstract embeddings → title embeddings (BERT) +
   tag embeddings (CBOW, aggregated) + duration + language/video-ID
-  embeddings, concatenated exactly as in the video feature-prep diagram.
+  embeddings, concatenated.
   Visual content adds frame-level embeddings (e.g. CLIP on sampled frames,
   mean-pooled) as one more concatenated block.
 - **User features:** reading history → watch history / impressions /
@@ -94,8 +120,7 @@ swapping the *feature preparation* front-end (cf. ByteByteGo Fig 6.7/6.23):
   of binary; LambdaMART handles this via `label_gain`), which also
   mitigates clickbait in a way clicks can't.
 - **Pipeline:** identical multi-stage shape — candidate generation over
-  billions, scoring over thousands, re-ranking over hundreds — with a video
-  feature store replacing our parquet "feature store lite".
+  billions, scoring over thousands, re-ranking over hundreds.
 - **What genuinely changes:** feature freshness matters more (new videos
   cold-start faster), and the re-ranker gains responsibilities (freshness
   boosting, deduplication of near-identical uploads) beyond MMR diversity.
@@ -105,19 +130,22 @@ swapping the *feature preparation* front-end (cf. ByteByteGo Fig 6.7/6.23):
 ```
 src/mind_ltr/
   data/       MIND parsers (impression logs → LTR training table)
-  features/   user / item / user-item feature builders
-  retrieval/  BM25 + FAISS candidate generation
-  ranking/    metrics (from scratch), synthetic sandbox, LambdaMART training
+  features/   user features (item / interaction features planned)
+  retrieval/  candidate retrieval (planned)
+  ranking/    metrics (from scratch), LambdaRank gradients, synthetic simulator
   rerank/     IPW position-bias weights, MMR diversity
-  serving/    FastAPI /recommend
-docs/LEARNING_PATH.md   step-by-step curriculum with interview questions
+  serving/    FastAPI app (/health only; /recommend planned)
+scripts/      MIND download, EDA
+tests/        unit tests
 ```
 
 ## Roadmap
 
-- [x] Step 1–3: metrics, LambdaMART vs pointwise, IPW (synthetic sandbox)
-- [ ] Step 4: MIND EDA (position-CTR curve, sparsity)
-- [ ] Step 5: feature engineering (leakage-safe)
-- [ ] Step 6: train on MIND + ablation table + data-driven eta
-- [ ] Step 7: BM25 + FAISS retrieval, recall@200
-- [ ] Step 8: FastAPI serving + MMR + Docker
+- [x] Metrics, LambdaRank from scratch, pointwise vs LambdaMART, IPW (synthetic simulator)
+- [x] MIND parsers + EDA, user features
+- [ ] Item / embedding / interaction features with leakage tests
+- [ ] LambdaMART on real MIND dev: baselines, confidence intervals, ablations, cold-start segments
+- [ ] Two-stage system: candidate retrieval + recall@K, end-to-end evaluation
+- [ ] FastAPI `/recommend` with latency budget and popular-items fallback, small Docker image
+- [ ] CI: ruff + pytest + Docker build tagged with the commit SHA
+- [ ] Monitoring: impression logging with position, scheduled drift job
