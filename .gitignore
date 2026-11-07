@@ -8,3 +8,12 @@ data/processed/*
 *.egg-info/
 .ipynb_checkpoints/
 mlruns/
+
+# local planning, notes and tooling (not published)
+04_project_roadmap_mind-ltr_plus_rag.md
+05_build_tasks.md
+PROGRESS.md
+CLAUDE.md
+docs/CODEBASE_OVERVIEW.md
+.claude/
+plans/
