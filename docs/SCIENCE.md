@@ -359,6 +359,28 @@ pipeline stalls for a day?").
 3. **Hand-computed fixture** with exact expected values, including the
    smoothing.
 
+The tests were themselves checked by mutation: making the cumulative sum
+include the current hour (a deliberate leak) makes the hand-computed and
+own-label tests fail.
+
+### Implementation results (`src/mind_ltr/features/item.py`)
+
+`build_item_popularity` over the full streaming timeline (train + dev,
+8,584,442 rows, prior p from the training window only) runs in seconds on
+a laptop CPU with no missing values. Per-impression AUC of each feature on
+its own:
+
+| feature | 2019-11-14 (validation day) | 2019-11-15 (test day) |
+|---|---|---|
+| `item_ctr_smooth` | 0.6347 | 0.6439 |
+| `item_log_impressions` | 0.4607 | 0.5169 |
+| `item_age_hours` | 0.4616 | 0.4859 |
+
+The validation-day CTR value matches the independent computation in the
+evidence table above. Volume and age are weak on their own; their value,
+if any, comes from interactions inside the ranker and will be measured by
+the feature-group ablations (Phase A4).
+
 Cold start: about a quarter of test clicks go to articles never seen in
 train. Popularity helps them only after their first hour; content features
 (Phase A2) cover the rest, and results will be reported separately for cold
@@ -372,3 +394,4 @@ and warm items.
 |---|---|---|
 | 2026-11-07 | 1–7 | Documented components built before the restart |
 | 2026-11-07 | 8 | Phase A1 science: time-lagged popularity, leakage, smoothing |
+| 2026-11-07 | 8 | Phase A1 implemented: `features/item.py`, leakage tests, real-data results |
